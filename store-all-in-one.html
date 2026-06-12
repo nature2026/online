@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
+<html lang="ja"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>治療院コンサル | オンラインストア</title>
@@ -205,7 +204,37 @@
     </header>
 
     <div class="container">
-        <div id="shopList"></div>
+        <div id="shopList">
+                <div class="product-card" id="scard-1">
+                    <div class="product-head" onclick="toggleCard(1)">
+                        <div class="product-head-left">
+                            <div class="product-name">治療院経営 実践テキスト</div>
+                            <div class="product-price"><span class="yen">¥</span>9,800</div>
+                        </div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="product-detail">
+                        <div class="product-detail-inner">
+                            <div class="product-desc">鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを体系的に解説。全150ページ・PDF形式。</div>
+                            <a href="https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i" class="btn-buy" target="_blank">購入する</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card" id="scard-4">
+                    <div class="product-head" onclick="toggleCard(4)">
+                        <div class="product-head-left">
+                            <div class="product-name">個別コンサルティング 60分</div>
+                            <div class="product-price"><span class="yen">¥</span>16,500</div>
+                        </div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="product-detail">
+                        <div class="product-detail-inner">
+                            <div class="product-desc">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</div>
+                            <a href="https://timerex.net/s/matsui_7b4d_7d19/4edea14f/" class="btn-buy" target="_blank">購入する</a>
+                        </div>
+                    </div>
+                </div></div>
     </div>
 
     <!-- フローティング購入バー -->
@@ -220,18 +249,18 @@
     </div>
 
     <footer>
-        <p>&copy; 2024 Su.inc / CAPCeLL. All Rights Reserved.</p>
+        <p>© 2024 Su.inc / CAPCeLL. All Rights Reserved.</p>
     </footer>
 
     <!-- 管理画面 -->
-    <div class="admin-overlay" id="adminOverlay">
+    <div class="admin-overlay active" id="adminOverlay">
         <div class="admin-panel">
             <div class="admin-panel-header">
                 <h2>管理画面 - 販売サイト</h2>
                 <button class="close-btn" onclick="closeAdmin()">×</button>
             </div>
             <div class="admin-body">
-                <div id="loginArea">
+                <div id="loginArea" style="display: none;">
                     <div class="login-form">
                         <p style="color:#999;font-size:13px;margin-bottom:20px;">パスワードを入力してください</p>
                         <div class="login-error" id="loginError">パスワードが間違っています</div>
@@ -240,7 +269,7 @@
                     </div>
                 </div>
 
-                <div id="adminMain" style="display:none;">
+                <div id="adminMain" style="display: block;">
                     <div class="save-bar">
                         <h3>💾 変更の保存</h3>
                         <p>
@@ -253,8 +282,58 @@
 
                     <div class="admin-section">
                         <h3>📋 商品一覧</h3>
-                        <div class="msg" id="listMsg"></div>
-                        <div id="adminList"></div>
+                        <div class="msg success" id="listMsg" style="display: none;">✓ 商品を削除しました</div>
+                        <div id="adminList">
+                <div class="pcard" id="pcard-1">
+                    <div class="pcard-main">
+                        <div class="pcard-name">治療院経営 実践テキスト</div>
+                        <div class="pcard-price">¥9,800</div>
+                        <div class="pcard-desc">鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを…</div>
+                        <div class="pcard-url">https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i</div>
+                    </div>
+                    <div class="pcard-edit">
+                        <div class="efield"><label>商品名</label><input type="text" id="en-1" value="治療院経営 実践テキスト"></div>
+                        <div class="efield"><label>金額（円）</label><input type="number" id="ep-1" value="9800" min="0"></div>
+                        <div class="efield"><label>商品説明</label><textarea id="ed-1">鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを体系的に解説。全150ページ・PDF形式。</textarea></div>
+                        <div class="efield"><label>Stripe リンク</label><input type="url" id="eu-1" value="https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i" placeholder="https://buy.stripe.com/..."></div>
+                    </div>
+                    <div class="pcard-actions">
+                        <div class="normal-acts" style="display:flex;gap:6px;">
+                            <button class="btn-act edit" onclick="startEdit(1)">編集</button>
+                            <button class="btn-act delete" onclick="delProduct(1)">削除</button>
+                        </div>
+                        <div class="edit-acts">
+                            <button class="btn-act save" onclick="saveEdit(1)">完了</button>
+                            <button class="btn-act cancel" onclick="cancelEdit(1)">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="pcard" id="pcard-4">
+                    <div class="pcard-main">
+                        <div class="pcard-name">個別コンサルティング 60分</div>
+                        <div class="pcard-price">¥16,500</div>
+                        <div class="pcard-desc">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</div>
+                        <div class="pcard-url">https://timerex.net/s/matsui_7b4d_7d19/4edea14f/</div>
+                    </div>
+                    <div class="pcard-edit">
+                        <div class="efield"><label>商品名</label><input type="text" id="en-4" value="個別コンサルティング 60分"></div>
+                        <div class="efield"><label>金額（円）</label><input type="number" id="ep-4" value="16500" min="0"></div>
+                        <div class="efield"><label>商品説明</label><textarea id="ed-4">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</textarea></div>
+                        <div class="efield"><label>Stripe リンク</label><input type="url" id="eu-4" value="https://timerex.net/s/matsui_7b4d_7d19/4edea14f/" placeholder="https://buy.stripe.com/..."></div>
+                    </div>
+                    <div class="pcard-actions">
+                        <div class="normal-acts" style="display:flex;gap:6px;">
+                            <button class="btn-act edit" onclick="startEdit(4)">編集</button>
+                            <button class="btn-act delete" onclick="delProduct(4)">削除</button>
+                        </div>
+                        <div class="edit-acts">
+                            <button class="btn-act save" onclick="saveEdit(4)">完了</button>
+                            <button class="btn-act cancel" onclick="cancelEdit(4)">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
                     </div>
 
                     <div class="admin-section">
@@ -288,11 +367,20 @@
         const STORAGE_KEY = 'clinic_shop_products_v2';
 
         const DEFAULT_PRODUCTS = [
-            { id: 1, name: "治療院経営 実践テキスト", price: 9800, desc: "鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを体系的に解説。全150ページ・PDF形式。", url: "https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i" },
-            { id: 2, name: "経営基礎 動画講座セット", price: 14800, desc: "治療院経営の基本を動画で学習。テキストだけでは理解しづらい実例も動画で確認できます。約3時間・全5本。", url: "#" },
-            { id: 3, name: "スタッフ育成 実務テンプレート集", price: 12800, desc: "営業案内、スタッフ評価シート、経営診断フォーマットなど、すぐに使える実務テンプレート30点以上。", url: "#" },
-            { id: 4, name: "個別コンサルティング 60分", price: 29800, desc: "あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。", url: "https://timerex.net/s/matsui_7b4d_7d19/4edea14f/" },
-            { id: 5, name: "年間サポート会員", price: 99800, desc: "月1回のZoom指導、新教材の優先提供、会員限定コンテンツへのアクセス。継続的な成長をサポートします。", url: "#" }
+            {
+                "id": 1,
+                "name": "治療院経営 実践テキスト",
+                "price": 9800,
+                "desc": "鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを体系的に解説。全150ページ・PDF形式。",
+                "url": "https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i"
+            },
+            {
+                "id": 4,
+                "name": "個別コンサルティング 60分",
+                "price": 16500,
+                "desc": "あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。",
+                "url": "https://timerex.net/s/matsui_7b4d_7d19/4edea14f/"
+            }
         ];
 
         let products = loadProducts();
@@ -512,5 +600,6 @@
 
         renderShop();
     </script>
-</body>
-</html>
+
+
+</body></html>
