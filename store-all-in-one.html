@@ -1,5 +1,363 @@
 <!DOCTYPE html>
 <html lang="ja"><head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      (function() {
+        // Capture host references before any artifact code runs: Window.parent
+        // is [Replaceable] (a top-level `var parent` in artifact code would
+        // replace the accessor with a data property), and a top-level
+        // `const crypto` would shadow the global — either would otherwise
+        // silently break the bridge for artifacts that worked before.
+        const realParent = window.parent;
+        const cryptoObj = window.crypto;
+        // crypto.randomUUID exists only in Secure Contexts; fall back to a
+        // unique non-crypto id elsewhere (http://LAN-IP dev flows) —
+        // uniqueness is what the bridge needs, unpredictability is
+        // defense-in-depth on top of the source guards.
+        const newRequestId =
+          cryptoObj && typeof cryptoObj.randomUUID === "function"
+            ? function () { return cryptoObj.randomUUID(); }
+            : function () { return Date.now() + "-" + Math.random(); };
+        const originalConsole = window.console;
+        window.console = {
+          log: (...args) => {
+            originalConsole.log(...args);
+            realParent.postMessage({ type: 'console', message: args.join(' ') }, '*');
+          },
+          error: (...args) => {
+            originalConsole.error(...args);
+            realParent.postMessage({ type: 'console', message: 'Error: ' + args.join(' ') }, '*');
+          },
+          warn: (...args) => {
+            originalConsole.warn(...args);
+            realParent.postMessage({ type: 'console', message: 'Warning: ' + args.join(' ') }, '*');
+          }
+        };
+
+        // Bridge request ids are crypto-random (not sequential) so they
+        // cannot be predicted by other frames in the tab.
+        let callbacksMap = new Map();
+        let streamControllers = new Map();
+        
+        window.claude = {
+          complete: (prompt) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'claudeComplete', id, prompt }, '*');
+            });
+          }
+        };
+
+        window.storage = {
+          get: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageGet', id, key, shared }, '*');
+            });
+          },
+          set: (key, value, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageSet', id, key, value, shared }, '*');
+            });
+          },
+          delete: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageDelete', id, key, shared }, '*');
+            });
+          },
+          list: (prefix, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageList', id, prefix, shared }, '*');
+            });
+          }
+        };
+
+        let pendingBlobs = new Map();
+        URL.createObjectURL = (blob) => {
+          // Store the blob and create an ID and URL for it
+          const blobId = `blob-${Date.now()}-${Math.random()}`;
+          pendingBlobs.set(blobId, blob);
+          return `blob-request://${blobId}`;
+        };
+
+        URL.revokeObjectURL = (url) => {
+          // Remove the blob from our store
+          const blobId = url.replace("blob-request://", "");
+          pendingBlobs.delete(blobId);
+        };
+
+        const getBlobFromURL = (url) => {
+          const blobId = url.replace("blob-request://", "");
+          return pendingBlobs.get(blobId);
+        };
+
+        // Override global fetch with streaming support
+        window.fetch = (url, init = {}) => {
+          return new Promise((resolve, reject) => {
+            const id = newRequestId();
+            const channelId = `fetch-${id}-${Date.now()}`;
+            
+            callbacksMap.set(id, { 
+              resolve: (response) => {
+                // Null-body statuses: Response(stream, {status: 204}) throws
+                // per the Fetch spec, which would escape this resolver and
+                // hang the artifact's await forever.
+                if (response.status === 204 || response.status === 205 || response.status === 304) {
+                  try {
+                    resolve(new Response(null, {
+                      status: response.status,
+                      statusText: response.statusText,
+                      headers: response.headers
+                    }));
+                  } catch (err) {
+                    // Invalid statusText/header bytes can throw here too.
+                    reject(new TypeError(
+                      'Bridge fetch: unconstructable response (status ' + response.status + ')'
+                    ));
+                  }
+                  return;
+                }
+                // Create a ReadableStream for the response body
+                const stream = new ReadableStream({
+                  start(controller) {
+                    streamControllers.set(channelId, controller);
+                  },
+                  cancel() {
+                    streamControllers.delete(channelId);
+                  }
+                });
+                
+                // Create and return the Response with the stream. Response()
+                // requires status in [200, 599]; an opaque/no-cors fetch
+                // forwards status 0, which would throw here and escape the
+                // resolver, hanging the artifact's await. Surface it as a
+                // network-error-shaped rejection instead.
+                try {
+                  resolve(new Response(stream, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers
+                  }));
+                } catch (err) {
+                  streamControllers.delete(channelId);
+                  reject(new TypeError(
+                    'Bridge fetch: unconstructable response (status ' + response.status + ')'
+                  ));
+                }
+              },
+              reject,
+              channelId
+            });
+            
+            realParent.postMessage({
+              type: 'proxyFetch',
+              id,
+              url,
+              init,
+              channelId
+            }, '*');
+          });
+        };
+
+        window.addEventListener('message', async (event) => {
+          // Only the embedding parent may drive the bridge — sibling and
+          // nested frames can also postMessage into this window.
+          if (event.source !== realParent) return;
+          if (event.data.type === 'takeScreenshot') {
+            // Echo the request's nonce so the requester can correlate the
+            // reply to ITS request — a reply without the expected nonce
+            // (e.g. from a stale pre-remount artifact) is ignored upstream.
+            const screenshotNonce = event.data.nonce;
+            const rootElement = document.getElementById('artifacts-component-root-html');
+            if (!rootElement) {
+              realParent.postMessage({
+                type: 'screenshotError',
+                nonce: screenshotNonce,
+                error: new Error('Root element not found'),
+              }, '*');
+              return;
+            }
+            // Catch CDN load failures (htmlToImage undefined) and toPng errors
+            // so the parent always gets a response instead of hanging forever.
+            try {
+              const screenshot = await htmlToImage.toPng(rootElement, {
+                imagePlaceholder:
+                  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjePDgwX8ACOQDoNsk0PMAAAAASUVORK5CYII=",
+              });
+              realParent.postMessage({
+                type: 'screenshotData',
+                nonce: screenshotNonce,
+                data: screenshot,
+              }, '*');
+            } catch (err) {
+              realParent.postMessage({
+                type: 'screenshotError',
+                nonce: screenshotNonce,
+                error: err instanceof Error ? err : new Error(String(err)),
+              }, '*');
+            }
+          } else if (event.data.type === 'claudeComplete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.completion);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'proxyFetchResponse') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+              callbacksMap.delete(event.data.id);
+            } else {
+              // Initial response with headers, status, etc.
+              callback.resolve({
+                status: event.data.status,
+                statusText: event.data.statusText,
+                headers: event.data.headers
+              });
+              // Don't delete the callback yet if streaming
+              if (!event.data.body) {
+                callbacksMap.delete(event.data.id);
+              }
+            }
+          } else if (event.data.type === 'proxyFetchStream') {
+            // Handle streaming data chunks
+            const controller = streamControllers.get(event.data.channelId);
+            if (controller) {
+              if (event.data.error) {
+                controller.error(new Error(event.data.error));
+                streamControllers.delete(event.data.channelId);
+              } else if (event.data.done) {
+                controller.close();
+                streamControllers.delete(event.data.channelId);
+                // Clean up the callback
+                const callback = Array.from(callbacksMap.entries()).find(
+                  ([_, value]) => value.channelId === event.data.channelId
+                );
+                if (callback) {
+                  callbacksMap.delete(callback[0]);
+                }
+              } else if (event.data.chunk) {
+                controller.enqueue(new Uint8Array(event.data.chunk));
+              }
+            }
+          } else if (event.data.type === 'storageGet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageSet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageDelete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageList') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          }
+        });
+
+        window.addEventListener('click', (event) => {
+          const isEl = event.target instanceof HTMLElement;
+          if (!isEl) return;
+    
+          // find ancestor links
+          const linkEl = event.target.closest("a");
+          if (!linkEl || !linkEl.href) return;
+    
+          event.preventDefault();
+          event.stopImmediatePropagation();
+    
+          if (linkEl.href.startsWith("blob-request:")) {
+            const blob = getBlobFromURL(linkEl.href);
+            if (!blob) return;
+            void blob.arrayBuffer().then((data) => {
+              realParent.postMessage({
+                type: "downloadFile",
+                filename: linkEl.download,
+                data,
+                mimeType: blob.type || "application/octet-stream",
+              });
+            });
+          } else if (linkEl.href.startsWith("data:")) {
+            const [header, base64Data] = linkEl.href.split(",");
+            const mimeMatch = header.match(/data:([^;]+)/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+            const binaryString = atob(base64Data);
+            const data = Uint8Array.from(binaryString, (c) =>
+              c.charCodeAt(0),
+            ).buffer;
+            realParent.postMessage({
+              type: "downloadFile",
+              filename: linkEl.download,
+              data,
+              mimeType,
+            });
+          } else {
+            let linkUrl;
+            try {
+              linkUrl = new URL(linkEl.href);
+            } catch (error) {
+              return;
+            }
+    
+            if (linkUrl.hostname === window.location.hostname) return;
+      
+            realParent.postMessage({
+              type: 'openExternal',
+              href: linkEl.href,
+            }, '*');
+          }
+      });
+
+        const originalOpen = window.open;
+        window.open = function (url) {
+          realParent.postMessage({
+            type: "openExternal",
+            href: url,
+          }, "*");
+        };
+
+        window.addEventListener('error', (event) => {
+          realParent.postMessage({ type: 'console', message: 'Uncaught Error: ' + event.message }, '*');
+        });
+      })();
+    </script>
+  
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>治療院コンサル | オンラインストア</title>
@@ -196,7 +554,7 @@
         }
     </style>
 </head>
-<body>
+<body id="artifacts-component-root-html">
     <header>
         <h1>STORE</h1>
         <p>治療院コンサル オンラインストア</p>
@@ -204,38 +562,7 @@
     </header>
 
     <div class="container">
-        <div id="shopList">
-                <div class="product-card" id="scard-1">
-                    <div class="product-head" onclick="toggleCard(1)">
-                        <div class="product-head-left">
-                            <div class="product-name">令和8年度　療養費改定資料の実践解説版（柔整・あはきセット）</div>
-                            <div class="product-price"><span class="yen">¥</span>8,800</div>
-                        </div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="product-detail">
-                        <div class="product-detail-inner">
-                            <div class="product-desc">令和8年度　療養費改定資料の実践解説版テキスト（柔整・あはきセット）
-療養費検討委員会にも傍聴したからこそ理解と解説できる療養費改訂版資料</div>
-                            <a href="https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i" class="btn-buy" target="_blank">購入する</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="product-card" id="scard-4">
-                    <div class="product-head" onclick="toggleCard(4)">
-                        <div class="product-head-left">
-                            <div class="product-name">個別コンサルティング 60分</div>
-                            <div class="product-price"><span class="yen">¥</span>16,500</div>
-                        </div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="product-detail">
-                        <div class="product-detail-inner">
-                            <div class="product-desc">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</div>
-                            <a href="https://buy.stripe.com/cNifZie4Geks6Tk9SvcMM0e" class="btn-buy" target="_blank">購入する</a>
-                        </div>
-                    </div>
-                </div></div>
+        <div id="shopList"></div>
     </div>
 
     <!-- フローティング購入バー -->
@@ -254,23 +581,23 @@
     </footer>
 
     <!-- 管理画面 -->
-    <div class="admin-overlay active" id="adminOverlay">
+    <div class="admin-overlay" id="adminOverlay">
         <div class="admin-panel">
             <div class="admin-panel-header">
                 <h2>管理画面 - 販売サイト</h2>
                 <button class="close-btn" onclick="closeAdmin()">×</button>
             </div>
             <div class="admin-body">
-                <div id="loginArea" style="display: none;">
+                <div id="loginArea">
                     <div class="login-form">
                         <p style="color:#999;font-size:13px;margin-bottom:20px;">パスワードを入力してください</p>
-                        <div class="login-error" id="loginError" style="display: none;">パスワードが間違っています</div>
+                        <div class="login-error" id="loginError">パスワードが間違っています</div>
                         <input type="password" id="pwInput" placeholder="パスワード" onkeydown="if(event.key==='Enter')doLogin()">
                         <button onclick="doLogin()">ログイン</button>
                     </div>
                 </div>
 
-                <div id="adminMain" style="display: block;">
+                <div id="adminMain" style="display: none;">
                     <div class="save-bar">
                         <h3>💾 変更の保存</h3>
                         <p>
@@ -284,59 +611,7 @@
                     <div class="admin-section">
                         <h3>📋 商品一覧</h3>
                         <div class="msg success" id="listMsg" style="display: none;">✓ 商品を更新しました（このブラウザに保存済み）</div>
-                        <div id="adminList">
-                <div class="pcard" id="pcard-1">
-                    <div class="pcard-main">
-                        <div class="pcard-name">令和8年度　療養費改定資料の実践解説版（柔整・あはきセット）</div>
-                        <div class="pcard-price">¥8,800</div>
-                        <div class="pcard-desc">令和8年度　療養費改定資料の実践解説版テキスト（柔整・あはきセット）
-療養費検討委員会にも傍聴したか…</div>
-                        <div class="pcard-url">https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i</div>
-                    </div>
-                    <div class="pcard-edit">
-                        <div class="efield"><label>商品名</label><input type="text" id="en-1" value="令和8年度　療養費改定資料の実践解説版（柔整・あはきセット）"></div>
-                        <div class="efield"><label>金額（円）</label><input type="number" id="ep-1" value="8800" min="0"></div>
-                        <div class="efield"><label>商品説明</label><textarea id="ed-1">令和8年度　療養費改定資料の実践解説版テキスト（柔整・あはきセット）
-療養費検討委員会にも傍聴したからこそ理解と解説できる療養費改訂版資料</textarea></div>
-                        <div class="efield"><label>Stripe リンク</label><input type="url" id="eu-1" value="https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i" placeholder="https://buy.stripe.com/..."></div>
-                    </div>
-                    <div class="pcard-actions">
-                        <div class="normal-acts" style="display:flex;gap:6px;">
-                            <button class="btn-act edit" onclick="startEdit(1)">編集</button>
-                            <button class="btn-act delete" onclick="delProduct(1)">削除</button>
-                        </div>
-                        <div class="edit-acts">
-                            <button class="btn-act save" onclick="saveEdit(1)">完了</button>
-                            <button class="btn-act cancel" onclick="cancelEdit(1)">キャンセル</button>
-                        </div>
-                    </div>
-                </div>
-            
-                <div class="pcard" id="pcard-4">
-                    <div class="pcard-main">
-                        <div class="pcard-name">個別コンサルティング 60分</div>
-                        <div class="pcard-price">¥16,500</div>
-                        <div class="pcard-desc">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</div>
-                        <div class="pcard-url">https://buy.stripe.com/cNifZie4Geks6Tk9SvcMM0e</div>
-                    </div>
-                    <div class="pcard-edit">
-                        <div class="efield"><label>商品名</label><input type="text" id="en-4" value="個別コンサルティング 60分"></div>
-                        <div class="efield"><label>金額（円）</label><input type="number" id="ep-4" value="16500" min="0"></div>
-                        <div class="efield"><label>商品説明</label><textarea id="ed-4">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</textarea></div>
-                        <div class="efield"><label>Stripe リンク</label><input type="url" id="eu-4" value="https://buy.stripe.com/cNifZie4Geks6Tk9SvcMM0e" placeholder="https://buy.stripe.com/..."></div>
-                    </div>
-                    <div class="pcard-actions">
-                        <div class="normal-acts" style="display:flex;gap:6px;">
-                            <button class="btn-act edit" onclick="startEdit(4)">編集</button>
-                            <button class="btn-act delete" onclick="delProduct(4)">削除</button>
-                        </div>
-                        <div class="edit-acts">
-                            <button class="btn-act save" onclick="saveEdit(4)">完了</button>
-                            <button class="btn-act cancel" onclick="cancelEdit(4)">キャンセル</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        <div id="adminList"></div>
                     </div>
 
                     <div class="admin-section">
@@ -351,7 +626,7 @@
                             <input type="number" id="newPrice" placeholder="例：9800" min="0">
                         </div>
                         <div class="add-field">
-                            <label>商品説明（タップで開く欄に表示）</label>
+                            <label>商品説明（オプション）</label>
                             <textarea id="newDesc" placeholder="商品の説明を入力（改行可）"></textarea>
                         </div>
                         <div class="add-field">
@@ -368,6 +643,12 @@
     <script>
         const CORRECT_PASSWORD = 'hikari01';
         const STORAGE_KEY = 'clinic_shop_products_v2';
+        const VERSION_KEY = 'clinic_shop_data_version';
+
+        // ★ このバージョンはファイル書き出しのたびに自動更新されます。
+        //   公開ファイルのバージョンとブラウザ保存データのバージョンが違う場合、
+        //   古いブラウザ保存データは破棄され、最新の公開データが表示されます。
+        const DATA_VERSION = "20260612-185956";
 
         const DEFAULT_PRODUCTS = [
             {
@@ -386,18 +667,29 @@
             }
         ];
 
-        let products = loadProducts();
-
         function loadProducts() {
             try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) return JSON.parse(saved);
+                const savedVersion = localStorage.getItem(VERSION_KEY);
+                if (savedVersion === DATA_VERSION) {
+                    // 同じバージョンの編集中データのみ復元（編集途中の続きができる）
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    if (saved) return JSON.parse(saved);
+                } else {
+                    // ファイルが更新された（または初回）→ 古いブラウザ保存データを破棄
+                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.setItem(VERSION_KEY, DATA_VERSION);
+                }
             } catch (e) {}
             return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
         }
         function saveProducts() {
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(products)); } catch (e) {}
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+                localStorage.setItem(VERSION_KEY, DATA_VERSION);
+            } catch (e) {}
         }
+
+        let products = loadProducts();
 
         // ===== ショップ表示 =====
         function renderShop() {
@@ -574,10 +866,43 @@
 
         // ===== 公開用ファイル書き出し =====
         function exportHTML() {
-            const currentHTML = document.documentElement.outerHTML;
-            const regex = /const DEFAULT_PRODUCTS = \[[\s\S]*?\];/;
-            const replacement = 'const DEFAULT_PRODUCTS = ' + JSON.stringify(products, null, 4).split('\n').map((line, i) => i === 0 ? line : '        ' + line).join('\n') + ';';
-            const exportedHTML = '<!DOCTYPE html>\n' + currentHTML.replace(regex, replacement);
+            // 1. ページを複製し、表示中の状態（開いた管理画面・描画済みリスト等）をリセットする
+            const clone = document.documentElement.cloneNode(true);
+            const ov = clone.querySelector('#adminOverlay');
+            if (ov) ov.classList.remove('active');
+            const la = clone.querySelector('#loginArea');
+            if (la) la.removeAttribute('style');
+            const am = clone.querySelector('#adminMain');
+            if (am) am.style.display = 'none';
+            const al = clone.querySelector('#adminList');
+            if (al) al.innerHTML = '';
+            const sl = clone.querySelector('#shopList');
+            if (sl) sl.innerHTML = '';
+            const fb = clone.querySelector('#floatBar');
+            if (fb) fb.classList.remove('show');
+            const ss = clone.querySelector('#saveStatus');
+            if (ss) { ss.textContent = ''; ss.removeAttribute('style'); }
+            const lm = clone.querySelector('#listMsg');
+            if (lm) { lm.className = 'msg success'; lm.style.display = 'none'; }
+            const amsg = clone.querySelector('#addMsg');
+            if (amsg) { amsg.className = 'msg'; amsg.removeAttribute('style'); }
+            const le = clone.querySelector('#loginError');
+            if (le) le.removeAttribute('style');
+
+            let html = clone.outerHTML;
+
+            // 2. 商品データを最新の内容に置き換える
+            const productsJson = 'const DEFAULT_PRODUCTS = ' + JSON.stringify(products, null, 4).split('\n').map((line, i) => i === 0 ? line : '        ' + line).join('\n') + ';';
+            html = html.replace(/const DEFAULT_PRODUCTS = \[[\s\S]*?\];/, () => productsJson);
+
+            // 3. データバージョンを更新（古いブラウザ保存データを全閲覧者側で自動破棄させる）
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const newVersion = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+            html = html.replace(/const DATA_VERSION = "[^"]*";/, () => `const DATA_VERSION = "${newVersion}";`);
+
+            // 4. ダウンロード
+            const exportedHTML = '<!DOCTYPE html>\n' + html;
             const blob = new Blob([exportedHTML], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
