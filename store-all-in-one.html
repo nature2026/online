@@ -208,14 +208,15 @@
                 <div class="product-card" id="scard-1">
                     <div class="product-head" onclick="toggleCard(1)">
                         <div class="product-head-left">
-                            <div class="product-name">治療院経営 実践テキスト</div>
-                            <div class="product-price"><span class="yen">¥</span>9,800</div>
+                            <div class="product-name">令和8年度　療養費改定資料の実践解説版（柔整・あはきセット）</div>
+                            <div class="product-price"><span class="yen">¥</span>8,800</div>
                         </div>
                         <div class="toggle-icon">▼</div>
                     </div>
                     <div class="product-detail">
                         <div class="product-detail-inner">
-                            <div class="product-desc">鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを体系的に解説。全150ページ・PDF形式。</div>
+                            <div class="product-desc">令和8年度　療養費改定資料の実践解説版テキスト（柔整・あはきセット）
+療養費検討委員会にも傍聴したからこそ理解と解説できる療養費改訂版資料</div>
                             <a href="https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i" class="btn-buy" target="_blank">購入する</a>
                         </div>
                     </div>
@@ -231,7 +232,7 @@
                     <div class="product-detail">
                         <div class="product-detail-inner">
                             <div class="product-desc">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</div>
-                            <a href="https://timerex.net/s/matsui_7b4d_7d19/4edea14f/" class="btn-buy" target="_blank">購入する</a>
+                            <a href="https://buy.stripe.com/cNifZie4Geks6Tk9SvcMM0e" class="btn-buy" target="_blank">購入する</a>
                         </div>
                     </div>
                 </div></div>
@@ -263,7 +264,7 @@
                 <div id="loginArea" style="display: none;">
                     <div class="login-form">
                         <p style="color:#999;font-size:13px;margin-bottom:20px;">パスワードを入力してください</p>
-                        <div class="login-error" id="loginError">パスワードが間違っています</div>
+                        <div class="login-error" id="loginError" style="display: none;">パスワードが間違っています</div>
                         <input type="password" id="pwInput" placeholder="パスワード" onkeydown="if(event.key==='Enter')doLogin()">
                         <button onclick="doLogin()">ログイン</button>
                     </div>
@@ -282,19 +283,21 @@
 
                     <div class="admin-section">
                         <h3>📋 商品一覧</h3>
-                        <div class="msg success" id="listMsg" style="display: none;">✓ 商品を削除しました</div>
+                        <div class="msg success" id="listMsg" style="display: none;">✓ 商品を更新しました（このブラウザに保存済み）</div>
                         <div id="adminList">
                 <div class="pcard" id="pcard-1">
                     <div class="pcard-main">
-                        <div class="pcard-name">治療院経営 実践テキスト</div>
-                        <div class="pcard-price">¥9,800</div>
-                        <div class="pcard-desc">鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを…</div>
+                        <div class="pcard-name">令和8年度　療養費改定資料の実践解説版（柔整・あはきセット）</div>
+                        <div class="pcard-price">¥8,800</div>
+                        <div class="pcard-desc">令和8年度　療養費改定資料の実践解説版テキスト（柔整・あはきセット）
+療養費検討委員会にも傍聴したか…</div>
                         <div class="pcard-url">https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i</div>
                     </div>
                     <div class="pcard-edit">
-                        <div class="efield"><label>商品名</label><input type="text" id="en-1" value="治療院経営 実践テキスト"></div>
-                        <div class="efield"><label>金額（円）</label><input type="number" id="ep-1" value="9800" min="0"></div>
-                        <div class="efield"><label>商品説明</label><textarea id="ed-1">鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを体系的に解説。全150ページ・PDF形式。</textarea></div>
+                        <div class="efield"><label>商品名</label><input type="text" id="en-1" value="令和8年度　療養費改定資料の実践解説版（柔整・あはきセット）"></div>
+                        <div class="efield"><label>金額（円）</label><input type="number" id="ep-1" value="8800" min="0"></div>
+                        <div class="efield"><label>商品説明</label><textarea id="ed-1">令和8年度　療養費改定資料の実践解説版テキスト（柔整・あはきセット）
+療養費検討委員会にも傍聴したからこそ理解と解説できる療養費改訂版資料</textarea></div>
                         <div class="efield"><label>Stripe リンク</label><input type="url" id="eu-1" value="https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i" placeholder="https://buy.stripe.com/..."></div>
                     </div>
                     <div class="pcard-actions">
@@ -314,13 +317,13 @@
                         <div class="pcard-name">個別コンサルティング 60分</div>
                         <div class="pcard-price">¥16,500</div>
                         <div class="pcard-desc">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</div>
-                        <div class="pcard-url">https://timerex.net/s/matsui_7b4d_7d19/4edea14f/</div>
+                        <div class="pcard-url">https://buy.stripe.com/cNifZie4Geks6Tk9SvcMM0e</div>
                     </div>
                     <div class="pcard-edit">
                         <div class="efield"><label>商品名</label><input type="text" id="en-4" value="個別コンサルティング 60分"></div>
                         <div class="efield"><label>金額（円）</label><input type="number" id="ep-4" value="16500" min="0"></div>
                         <div class="efield"><label>商品説明</label><textarea id="ed-4">あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。</textarea></div>
-                        <div class="efield"><label>Stripe リンク</label><input type="url" id="eu-4" value="https://timerex.net/s/matsui_7b4d_7d19/4edea14f/" placeholder="https://buy.stripe.com/..."></div>
+                        <div class="efield"><label>Stripe リンク</label><input type="url" id="eu-4" value="https://buy.stripe.com/cNifZie4Geks6Tk9SvcMM0e" placeholder="https://buy.stripe.com/..."></div>
                     </div>
                     <div class="pcard-actions">
                         <div class="normal-acts" style="display:flex;gap:6px;">
@@ -369,9 +372,9 @@
         const DEFAULT_PRODUCTS = [
             {
                 "id": 1,
-                "name": "治療院経営 実践テキスト",
-                "price": 9800,
-                "desc": "鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを体系的に解説。全150ページ・PDF形式。",
+                "name": "令和8年度　療養費改定資料の実践解説版（柔整・あはきセット）",
+                "price": 8800,
+                "desc": "令和8年度　療養費改定資料の実践解説版テキスト（柔整・あはきセット）\n療養費検討委員会にも傍聴したからこそ理解と解説できる療養費改訂版資料",
                 "url": "https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i"
             },
             {
@@ -379,7 +382,7 @@
                 "name": "個別コンサルティング 60分",
                 "price": 16500,
                 "desc": "あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。",
-                "url": "https://timerex.net/s/matsui_7b4d_7d19/4edea14f/"
+                "url": "https://buy.stripe.com/cNifZie4Geks6Tk9SvcMM0e"
             }
         ];
 
