@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>治療院コンサル | オンラインストア</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'ヒラギノ角ゴ Pro', sans-serif; background-color: #faf9f7; color: #333; -webkit-tap-highlight-color: transparent; }
+
+        /* ===== ヘッダー ===== */
+        header {
+            background: linear-gradient(135deg, #1a3a52 0%, #2d5a3d 100%);
+            color: white; padding: 32px 20px; text-align: center; position: relative;
+        }
+        header h1 { font-size: 30px; margin-bottom: 6px; font-weight: 300; letter-spacing: 2px; }
+        header p { font-size: 13px; opacity: 0.9; }
+        .admin-link {
+            position: absolute; top: 14px; right: 16px;
+            background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);
+            padding: 6px 14px; border-radius: 4px; font-size: 12px; cursor: pointer;
+        }
+        .admin-link:hover { background: rgba(255,255,255,0.25); }
+
+        /* ===== ショップ ===== */
+        .container { max-width: 720px; margin: 0 auto; padding: 24px 16px 120px; }
+
+        .product-card {
+            background: white; border-radius: 12px; margin-bottom: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06); overflow: hidden;
+            border: 1px solid #f0ece6;
+        }
+        .product-head {
+            padding: 18px 20px; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+        }
+        .product-head-left { flex: 1; min-width: 0; }
+        .product-name { font-size: 17px; font-weight: 600; color: #1a3a52; margin-bottom: 6px; line-height: 1.4; }
+        .product-price { font-size: 22px; font-weight: 700; color: #2d5a3d; }
+        .product-price .yen { font-size: 15px; font-weight: 500; }
+        .toggle-icon {
+            flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+            background: #f0f5f3; color: #2d5a3d; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; transition: transform 0.3s ease; margin-top: 4px;
+        }
+        .product-card.open .toggle-icon { transform: rotate(180deg); }
+
+        .product-detail {
+            max-height: 0; overflow: hidden; transition: max-height 0.35s ease;
+            background: #faf9f7;
+        }
+        .product-card.open .product-detail { max-height: 600px; }
+        .product-detail-inner { padding: 0 20px 20px; }
+        .product-desc {
+            font-size: 14px; color: #555; line-height: 1.7; padding-top: 16px;
+            border-top: 1px solid #eee; margin-bottom: 18px; white-space: pre-wrap;
+        }
+        .btn-buy {
+            display: block; width: 100%; padding: 15px; text-align: center;
+            background: #2d5a3d; color: white; border: none; border-radius: 10px;
+            font-size: 16px; font-weight: 700; text-decoration: none; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-buy:active { background: #1a3a52; transform: scale(0.98); }
+        .btn-buy.disabled { background: #e8e8e8; color: #999; cursor: default; }
+
+        .empty-shop { text-align: center; padding: 60px 20px; color: #999; }
+
+        /* ===== フローティング購入バー ===== */
+        .float-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
+            background: white; box-shadow: 0 -4px 20px rgba(0,0,0,0.12);
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+            transform: translateY(120%); transition: transform 0.35s ease;
+        }
+        .float-bar.show { transform: translateY(0); }
+        .float-bar-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+        .float-info { flex: 1; min-width: 0; }
+        .float-name { font-size: 13px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .float-price { font-size: 20px; font-weight: 700; color: #2d5a3d; }
+        .float-price .yen { font-size: 13px; font-weight: 500; }
+        .float-buy {
+            flex-shrink: 0; padding: 14px 28px; background: #2d5a3d; color: white;
+            border: none; border-radius: 10px; font-size: 16px; font-weight: 700;
+            text-decoration: none; cursor: pointer; white-space: nowrap;
+        }
+        .float-buy:active { background: #1a3a52; transform: scale(0.98); }
+        .float-buy.disabled { background: #e8e8e8; color: #999; }
+
+        footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+
+        /* ===== 管理画面（モーダル） ===== */
+        .admin-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(26, 58, 82, 0.5); z-index: 1000; overflow-y: auto;
+        }
+        .admin-overlay.active { display: block; }
+        .admin-panel {
+            background: #f5f5f5; max-width: 800px; margin: 30px auto; border-radius: 12px;
+            overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+        }
+        .admin-panel-header {
+            background: linear-gradient(135deg, #1a3a52 0%, #2d5a3d 100%); color: white;
+            padding: 18px 22px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .admin-panel-header h2 { font-size: 17px; font-weight: 400; }
+        .close-btn {
+            background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);
+            width: 32px; height: 32px; border-radius: 4px; cursor: pointer; font-size: 18px;
+        }
+        .admin-body { padding: 22px; }
+
+        .login-form { max-width: 320px; margin: 40px auto; text-align: center; }
+        .login-form input {
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;
+            font-size: 14px; margin-bottom: 16px;
+        }
+        .login-form input:focus { outline: none; border-color: #2d5a3d; }
+        .login-form button {
+            width: 100%; padding: 12px; background: #2d5a3d; color: white; border: none;
+            border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .login-error { color: #c33; font-size: 13px; margin-bottom: 12px; display: none; }
+
+        .admin-section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .admin-section h3 {
+            font-size: 16px; color: #1a3a52; margin-bottom: 16px;
+            padding-bottom: 10px; border-bottom: 2px solid #2d5a3d;
+        }
+
+        .pcard {
+            display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px;
+            border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px;
+        }
+        .pcard.editing { border-color: #2d5a3d; background: #f0f5f3; box-shadow: 0 0 0 2px rgba(45,90,61,0.1); }
+        .pcard-main { flex: 1; min-width: 0; }
+        .pcard-name { font-size: 14px; font-weight: 500; color: #1a3a52; margin-bottom: 3px; }
+        .pcard-price { font-size: 16px; font-weight: 600; color: #2d5a3d; }
+        .pcard-desc { font-size: 12px; color: #888; margin-top: 4px; line-height: 1.5; }
+        .pcard-url { font-size: 11px; color: #aaa; margin-top: 3px; word-break: break-all; }
+        .pcard-edit { flex: 1; display: none; }
+        .pcard.editing .pcard-main { display: none; }
+        .pcard.editing .pcard-edit { display: block; }
+        .efield { margin-bottom: 8px; }
+        .efield label { display: block; font-size: 11px; color: #888; margin-bottom: 3px; }
+        .efield input, .efield textarea {
+            width: 100%; padding: 8px 10px; border: 1px solid #2d5a3d; border-radius: 5px;
+            font-size: 13px; font-family: inherit;
+        }
+        .efield textarea { resize: vertical; min-height: 60px; }
+        .efield input:focus, .efield textarea:focus { outline: none; box-shadow: 0 0 0 3px rgba(45,90,61,0.12); }
+        .pcard-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+        .pcard.editing .normal-acts { display: none; }
+        .edit-acts { display: none; }
+        .pcard.editing .edit-acts { display: flex; flex-direction: column; gap: 6px; }
+        .btn-act {
+            padding: 7px 14px; border: 1px solid #ddd; background: white; color: #333;
+            border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 500; white-space: nowrap;
+        }
+        .btn-act.edit { color: #1a3a52; border-color: #1a3a52; }
+        .btn-act.edit:hover { background: #1a3a52; color: white; }
+        .btn-act.delete { color: #c33; border-color: #c33; }
+        .btn-act.delete:hover { background: #c33; color: white; }
+        .btn-act.save { color: white; background: #2d5a3d; border-color: #2d5a3d; font-weight: 600; }
+        .btn-act.cancel { color: #888; }
+
+        .add-field { margin-bottom: 14px; }
+        .add-field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; color: #555; }
+        .add-field input, .add-field textarea {
+            width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit;
+        }
+        .add-field textarea { resize: vertical; min-height: 70px; }
+        .add-field input:focus, .add-field textarea:focus { outline: none; border-color: #2d5a3d; }
+        .btn-primary {
+            padding: 11px 24px; background: #2d5a3d; color: white; border: none;
+            border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;
+        }
+
+        .save-bar { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 2px solid #2d5a3d; }
+        .save-bar h3 { border: none; padding: 0; margin-bottom: 8px; font-size: 16px; color: #1a3a52; }
+        .save-bar p { font-size: 12px; color: #666; margin-bottom: 16px; line-height: 1.6; }
+        .btn-export {
+            padding: 11px 24px; background: #1a3a52; color: white; border: none;
+            border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;
+        }
+        .save-status { font-size: 12px; color: #2d5a3d; margin-top: 12px; display: none; }
+
+        .msg { padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; display: none; }
+        .msg.success { background: #efe; color: #2d5a3d; display: block; }
+        .msg.error { background: #fee; color: #c33; display: block; }
+
+        @media (max-width: 640px) {
+            .pcard { flex-direction: column; }
+            .pcard-actions { flex-direction: row; width: 100%; }
+            .pcard.editing .edit-acts { flex-direction: row; }
+            .btn-act { flex: 1; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>STORE</h1>
+        <p>治療院コンサル オンラインストア</p>
+        <button class="admin-link" onclick="openAdmin()">管理</button>
+    </header>
+
+    <div class="container">
+        <div id="shopList"></div>
+    </div>
+
+    <!-- フローティング購入バー -->
+    <div class="float-bar" id="floatBar">
+        <div class="float-bar-inner">
+            <div class="float-info">
+                <div class="float-name" id="floatName"></div>
+                <div class="float-price" id="floatPrice"></div>
+            </div>
+            <a class="float-buy" id="floatBuy">購入する</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Su.inc / CAPCeLL. All Rights Reserved.</p>
+    </footer>
+
+    <!-- 管理画面 -->
+    <div class="admin-overlay" id="adminOverlay">
+        <div class="admin-panel">
+            <div class="admin-panel-header">
+                <h2>管理画面 - 販売サイト</h2>
+                <button class="close-btn" onclick="closeAdmin()">×</button>
+            </div>
+            <div class="admin-body">
+                <div id="loginArea">
+                    <div class="login-form">
+                        <p style="color:#999;font-size:13px;margin-bottom:20px;">パスワードを入力してください</p>
+                        <div class="login-error" id="loginError">パスワードが間違っています</div>
+                        <input type="password" id="pwInput" placeholder="パスワード" onkeydown="if(event.key==='Enter')doLogin()">
+                        <button onclick="doLogin()">ログイン</button>
+                    </div>
+                </div>
+
+                <div id="adminMain" style="display:none;">
+                    <div class="save-bar">
+                        <h3>💾 変更の保存</h3>
+                        <p>
+                            編集内容は<strong>自動でこのブラウザに保存</strong>されます（このPCで見たショップに即反映）。<br>
+                            <strong>全員に公開反映するには</strong>、下のボタンで完成ファイルを書き出し、サーバーにアップロードしてください。
+                        </p>
+                        <button class="btn-export" onclick="exportHTML()">📤 公開用ファイルを書き出す</button>
+                        <div class="save-status" id="saveStatus"></div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>📋 商品一覧</h3>
+                        <div class="msg" id="listMsg"></div>
+                        <div id="adminList"></div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>➕ 商品追加</h3>
+                        <div class="msg" id="addMsg"></div>
+                        <div class="add-field">
+                            <label>商品名</label>
+                            <input type="text" id="newName" placeholder="例：治療院経営 実践テキスト">
+                        </div>
+                        <div class="add-field">
+                            <label>金額（円）</label>
+                            <input type="number" id="newPrice" placeholder="例：9800" min="0">
+                        </div>
+                        <div class="add-field">
+                            <label>商品説明（タップで開く欄に表示）</label>
+                            <textarea id="newDesc" placeholder="商品の説明を入力（改行可）"></textarea>
+                        </div>
+                        <div class="add-field">
+                            <label>Stripe リンク（オプション）</label>
+                            <input type="url" id="newUrl" placeholder="https://buy.stripe.com/...">
+                        </div>
+                        <button class="btn-primary" onclick="addProduct()">商品を追加</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CORRECT_PASSWORD = 'hikari01';
+        const STORAGE_KEY = 'clinic_shop_products_v2';
+
+        const DEFAULT_PRODUCTS = [
+            { id: 1, name: "治療院経営 実践テキスト", price: 9800, desc: "鍼灸・柔道整復院の経営で実績のある新井裕也による、包括的な経営テキスト。患者集客から収益最適化までを体系的に解説。全150ページ・PDF形式。", url: "https://buy.stripe.com/8x24gAd0C2BK7Xo5CfcMM0i" },
+            { id: 2, name: "経営基礎 動画講座セット", price: 14800, desc: "治療院経営の基本を動画で学習。テキストだけでは理解しづらい実例も動画で確認できます。約3時間・全5本。", url: "#" },
+            { id: 3, name: "スタッフ育成 実務テンプレート集", price: 12800, desc: "営業案内、スタッフ評価シート、経営診断フォーマットなど、すぐに使える実務テンプレート30点以上。", url: "#" },
+            { id: 4, name: "個別コンサルティング 60分", price: 29800, desc: "あなたの治療院の課題に対して、新井が直接アドバイス。60分のZoomセッション（要予約）。", url: "https://timerex.net/s/matsui_7b4d_7d19/4edea14f/" },
+            { id: 5, name: "年間サポート会員", price: 99800, desc: "月1回のZoom指導、新教材の優先提供、会員限定コンテンツへのアクセス。継続的な成長をサポートします。", url: "#" }
+        ];
+
+        let products = loadProducts();
+
+        function loadProducts() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) return JSON.parse(saved);
+            } catch (e) {}
+            return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+        }
+        function saveProducts() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(products)); } catch (e) {}
+        }
+
+        // ===== ショップ表示 =====
+        function renderShop() {
+            const list = document.getElementById('shopList');
+            if (products.length === 0) {
+                list.innerHTML = '<div class="empty-shop">商品はまだありません</div>';
+                return;
+            }
+            list.innerHTML = products.map(p => {
+                const hasLink = p.url && p.url !== '#';
+                return `
+                <div class="product-card" id="scard-${p.id}">
+                    <div class="product-head" onclick="toggleCard(${p.id})">
+                        <div class="product-head-left">
+                            <div class="product-name">${escapeHtml(p.name)}</div>
+                            <div class="product-price"><span class="yen">¥</span>${p.price.toLocaleString('ja-JP')}</div>
+                        </div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="product-detail">
+                        <div class="product-detail-inner">
+                            ${p.desc ? `<div class="product-desc">${escapeHtml(p.desc)}</div>` : '<div style="padding-top:16px;"></div>'}
+                            ${hasLink
+                                ? `<a href="${escapeHtml(p.url)}" class="btn-buy" target="_blank">購入する</a>`
+                                : `<span class="btn-buy disabled">準備中</span>`}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        let openCardId = null;
+        function toggleCard(id) {
+            const card = document.getElementById(`scard-${id}`);
+            const wasOpen = card.classList.contains('open');
+            // 全て閉じる
+            document.querySelectorAll('.product-card.open').forEach(c => c.classList.remove('open'));
+            if (!wasOpen) {
+                card.classList.add('open');
+                openCardId = id;
+                showFloatBar(id);
+            } else {
+                openCardId = null;
+                hideFloatBar();
+            }
+        }
+
+        // ===== フローティングバー =====
+        function showFloatBar(id) {
+            const p = products.find(x => x.id === id);
+            const hasLink = p.url && p.url !== '#';
+            document.getElementById('floatName').textContent = p.name;
+            document.getElementById('floatPrice').innerHTML = `<span class="yen">¥</span>${p.price.toLocaleString('ja-JP')}`;
+            const buyBtn = document.getElementById('floatBuy');
+            if (hasLink) {
+                buyBtn.className = 'float-buy';
+                buyBtn.textContent = '購入する';
+                buyBtn.href = p.url;
+                buyBtn.target = '_blank';
+            } else {
+                buyBtn.className = 'float-buy disabled';
+                buyBtn.textContent = '準備中';
+                buyBtn.removeAttribute('href');
+            }
+            document.getElementById('floatBar').classList.add('show');
+        }
+        function hideFloatBar() {
+            document.getElementById('floatBar').classList.remove('show');
+        }
+
+        // ===== 管理画面 =====
+        function openAdmin() { document.getElementById('adminOverlay').classList.add('active'); }
+        function closeAdmin() {
+            document.getElementById('adminOverlay').classList.remove('active');
+            document.getElementById('loginArea').style.display = 'block';
+            document.getElementById('adminMain').style.display = 'none';
+            document.getElementById('pwInput').value = '';
+            document.getElementById('loginError').style.display = 'none';
+        }
+        function doLogin() {
+            const pw = document.getElementById('pwInput').value;
+            if (pw === CORRECT_PASSWORD) {
+                document.getElementById('loginArea').style.display = 'none';
+                document.getElementById('adminMain').style.display = 'block';
+                renderAdmin();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+                document.getElementById('pwInput').value = '';
+            }
+        }
+
+        function renderAdmin() {
+            const list = document.getElementById('adminList');
+            list.innerHTML = products.map(p => `
+                <div class="pcard" id="pcard-${p.id}">
+                    <div class="pcard-main">
+                        <div class="pcard-name">${escapeHtml(p.name)}</div>
+                        <div class="pcard-price">¥${p.price.toLocaleString('ja-JP')}</div>
+                        ${p.desc ? `<div class="pcard-desc">${escapeHtml(p.desc.length > 50 ? p.desc.slice(0,50)+'…' : p.desc)}</div>` : ''}
+                        <div class="pcard-url">${p.url && p.url !== '#' ? escapeHtml(p.url) : '（リンクなし・準備中表示）'}</div>
+                    </div>
+                    <div class="pcard-edit">
+                        <div class="efield"><label>商品名</label><input type="text" id="en-${p.id}" value="${escapeHtml(p.name)}"></div>
+                        <div class="efield"><label>金額（円）</label><input type="number" id="ep-${p.id}" value="${p.price}" min="0"></div>
+                        <div class="efield"><label>商品説明</label><textarea id="ed-${p.id}">${escapeHtml(p.desc || '')}</textarea></div>
+                        <div class="efield"><label>Stripe リンク</label><input type="url" id="eu-${p.id}" value="${p.url && p.url !== '#' ? escapeHtml(p.url) : ''}" placeholder="https://buy.stripe.com/..."></div>
+                    </div>
+                    <div class="pcard-actions">
+                        <div class="normal-acts" style="display:flex;gap:6px;">
+                            <button class="btn-act edit" onclick="startEdit(${p.id})">編集</button>
+                            <button class="btn-act delete" onclick="delProduct(${p.id})">削除</button>
+                        </div>
+                        <div class="edit-acts">
+                            <button class="btn-act save" onclick="saveEdit(${p.id})">完了</button>
+                            <button class="btn-act cancel" onclick="cancelEdit(${p.id})">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function startEdit(id) {
+            document.querySelectorAll('.pcard.editing').forEach(c => c.classList.remove('editing'));
+            document.getElementById(`pcard-${id}`).classList.add('editing');
+            const input = document.getElementById(`en-${id}`);
+            input.focus(); input.select();
+        }
+        function saveEdit(id) {
+            const name = document.getElementById(`en-${id}`).value.trim();
+            const price = parseInt(document.getElementById(`ep-${id}`).value);
+            const desc = document.getElementById(`ed-${id}`).value.trim();
+            const url = document.getElementById(`eu-${id}`).value.trim();
+            if (!name) { alert('商品名を入力してください'); return; }
+            if (!price || price <= 0) { alert('金額を正しく入力してください'); return; }
+            const p = products.find(x => x.id === id);
+            p.name = name; p.price = price; p.desc = desc; p.url = url || '#';
+            saveProducts();
+            showMsg('listMsg', '✓ 商品を更新しました（このブラウザに保存済み）', 'success');
+            renderAdmin(); renderShop();
+        }
+        function cancelEdit(id) {
+            document.getElementById(`pcard-${id}`).classList.remove('editing');
+            const p = products.find(x => x.id === id);
+            document.getElementById(`en-${id}`).value = p.name;
+            document.getElementById(`ep-${id}`).value = p.price;
+            document.getElementById(`ed-${id}`).value = p.desc || '';
+            document.getElementById(`eu-${id}`).value = (p.url && p.url !== '#') ? p.url : '';
+        }
+        function addProduct() {
+            const name = document.getElementById('newName').value.trim();
+            const price = parseInt(document.getElementById('newPrice').value);
+            const desc = document.getElementById('newDesc').value.trim();
+            const url = document.getElementById('newUrl').value.trim();
+            if (!name) { showMsg('addMsg', '商品名を入力してください', 'error'); return; }
+            if (!price || price <= 0) { showMsg('addMsg', '金額を正しく入力してください', 'error'); return; }
+            const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+            products.push({ id: newId, name, price, desc, url: url || '#' });
+            saveProducts();
+            document.getElementById('newName').value = '';
+            document.getElementById('newPrice').value = '';
+            document.getElementById('newDesc').value = '';
+            document.getElementById('newUrl').value = '';
+            showMsg('addMsg', '✓ 商品を追加しました（このブラウザに保存済み）', 'success');
+            renderAdmin(); renderShop();
+        }
+        function delProduct(id) {
+            if (confirm('この商品を削除しますか？')) {
+                products = products.filter(p => p.id !== id);
+                saveProducts();
+                showMsg('listMsg', '✓ 商品を削除しました', 'success');
+                renderAdmin(); renderShop();
+            }
+        }
+
+        // ===== 公開用ファイル書き出し =====
+        function exportHTML() {
+            const currentHTML = document.documentElement.outerHTML;
+            const regex = /const DEFAULT_PRODUCTS = \[[\s\S]*?\];/;
+            const replacement = 'const DEFAULT_PRODUCTS = ' + JSON.stringify(products, null, 4).split('\n').map((line, i) => i === 0 ? line : '        ' + line).join('\n') + ';';
+            const exportedHTML = '<!DOCTYPE html>\n' + currentHTML.replace(regex, replacement);
+            const blob = new Blob([exportedHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'store-all-in-one.html';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            const status = document.getElementById('saveStatus');
+            status.textContent = '✓ ファイルを書き出しました。サーバーにアップロードすると全員に反映されます。';
+            status.style.display = 'block';
+            setTimeout(() => { status.style.display = 'none'; }, 6000);
+        }
+
+        function showMsg(id, text, type) {
+            const msg = document.getElementById(id);
+            msg.textContent = text; msg.className = 'msg ' + type;
+            setTimeout(() => { msg.style.display = 'none'; }, 4000);
+        }
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML.replace(/"/g, '&quot;');
+        }
+
+        renderShop();
+    </script>
+</body>
+</html>
