@@ -254,14 +254,14 @@
     </footer>
 
     <!-- 管理画面 -->
-    <div class="admin-overlay active" id="adminOverlay">
+    <div class="admin-overlay" id="adminOverlay">
         <div class="admin-panel">
             <div class="admin-panel-header">
                 <h2>管理画面 - 販売サイト</h2>
                 <button class="close-btn" onclick="closeAdmin()">×</button>
             </div>
             <div class="admin-body">
-                <div id="loginArea" style="display: none;">
+                <div id="loginArea">
                     <div class="login-form">
                         <p style="color:#999;font-size:13px;margin-bottom:20px;">パスワードを入力してください</p>
                         <div class="login-error" id="loginError" style="display: none;">パスワードが間違っています</div>
@@ -270,7 +270,7 @@
                     </div>
                 </div>
 
-                <div id="adminMain" style="display: block;">
+                <div id="adminMain" style="display:none;">
                     <div class="save-bar">
                         <h3>💾 変更の保存</h3>
                         <p>
@@ -367,7 +367,8 @@
 
     <script>
         const CORRECT_PASSWORD = 'hikari01';
-        const STORAGE_KEY = 'clinic_shop_products_v2';
+        const STORAGE_KEY = 'clinic_shop_products_v3';
+        const DATA_VERSION = 1; // 書き出すたびに自動で増えます（手動変更不要）
 
         const DEFAULT_PRODUCTS = [
             {
@@ -391,12 +392,19 @@
         function loadProducts() {
             try {
                 const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) return JSON.parse(saved);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    // ファイルのバージョンと一致する保存データのみ使用。
+                    // ファイルが新しくなっていたら（アップロード後）、ファイル内データを優先。
+                    if (data && data.v === DATA_VERSION && Array.isArray(data.products)) {
+                        return data.products;
+                    }
+                }
             } catch (e) {}
             return JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
         }
         function saveProducts() {
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(products)); } catch (e) {}
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: DATA_VERSION, products: products })); } catch (e) {}
         }
 
         // ===== ショップ表示 =====
@@ -574,10 +582,50 @@
 
         // ===== 公開用ファイル書き出し =====
         function exportHTML() {
+            // --- 書き出し用に画面を初期状態（管理画面が閉じた状態）へ一時リセット ---
+            const overlay = document.getElementById('adminOverlay');
+            const loginArea = document.getElementById('loginArea');
+            const adminMain = document.getElementById('adminMain');
+            const pwInput = document.getElementById('pwInput');
+            const loginError = document.getElementById('loginError');
+
+            const _overlayClass = overlay.className;
+            const _loginDisplay = loginArea.style.display;
+            const _adminDisplay = adminMain.style.display;
+            const _pwValue = pwInput.value;
+            const _errorDisplay = loginError.style.display;
+
+            overlay.className = 'admin-overlay';
+            loginArea.style.display = 'block';
+            adminMain.style.display = 'none';
+            pwInput.value = '';
+            loginError.style.display = 'none';
+            document.querySelectorAll('.product-card.open').forEach(c => c.classList.remove('open'));
+            const floatBar = document.getElementById('floatBar');
+            if (floatBar) floatBar.classList.remove('show');
+
             const currentHTML = document.documentElement.outerHTML;
-            const regex = /const DEFAULT_PRODUCTS = \[[\s\S]*?\];/;
-            const replacement = 'const DEFAULT_PRODUCTS = ' + JSON.stringify(products, null, 4).split('\n').map((line, i) => i === 0 ? line : '        ' + line).join('\n') + ';';
-            const exportedHTML = '<!DOCTYPE html>\n' + currentHTML.replace(regex, replacement);
+
+            // 画面状態を元に戻す
+            overlay.className = _overlayClass;
+            loginArea.style.display = _loginDisplay;
+            adminMain.style.display = _adminDisplay;
+            pwInput.value = _pwValue;
+            loginError.style.display = _errorDisplay;
+
+            // --- データを焼き込み、バージョンを+1して書き出す ---
+            const newVersion = DATA_VERSION + 1;
+            let exportedHTML = currentHTML;
+            exportedHTML = exportedHTML.replace(
+                /const DEFAULT_PRODUCTS = \[[\s\S]*?\];/,
+                'const DEFAULT_PRODUCTS = ' + JSON.stringify(products, null, 4).split('\n').map((line, i) => i === 0 ? line : '        ' + line).join('\n') + ';'
+            );
+            exportedHTML = exportedHTML.replace(
+                /const DATA_VERSION = \d+;/,
+                'const DATA_VERSION = ' + newVersion + ';'
+            );
+            exportedHTML = '<!DOCTYPE html>\n' + exportedHTML;
+
             const blob = new Blob([exportedHTML], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
