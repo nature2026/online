@@ -34,6 +34,11 @@
             display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
         }
         .product-head-left { flex: 1; min-width: 0; }
+        .product-badge {
+            display: inline-block; margin-bottom: 8px; padding: 4px 11px;
+            background: #B4530F; color: #fff; border-radius: 999px;
+            font-size: 11px; font-weight: 700; letter-spacing: .08em;
+        }
         .product-name { font-size: 17px; font-weight: 600; color: #1a3a52; margin-bottom: 6px; line-height: 1.4; }
         .product-price { font-size: 22px; font-weight: 700; color: #2d5a3d; }
         .product-price .yen { font-size: 15px; font-weight: 500; }
@@ -48,7 +53,7 @@
             max-height: 0; overflow: hidden; transition: max-height 0.35s ease;
             background: #faf9f7;
         }
-        .product-card.open .product-detail { max-height: 600px; }
+        .product-card.open .product-detail { max-height: 1600px; }
         .product-detail-inner { padding: 0 20px 20px; }
         .product-desc {
             font-size: 14px; color: #555; line-height: 1.7; padding-top: 16px;
@@ -368,9 +373,17 @@
     <script>
         const CORRECT_PASSWORD = 'hikari01';
         const STORAGE_KEY = 'clinic_shop_products_v3';
-        const DATA_VERSION = 1; // 書き出すたびに自動で増えます（手動変更不要）
+        const DATA_VERSION = 2; // 書き出すたびに自動で増えます（手動変更不要）
 
         const DEFAULT_PRODUCTS = [
+            {
+                "id": 5,
+                "badge": "おすすめ",
+                "name": "整骨院のための　交通事故対応実務テキスト（全5部・133ページ）",
+                "price": 66000,
+                "desc": "「月15日通わないと慰謝料が減る」「3か月で打ち切り」——業界で当然のように語られている説明について、告示・通達の原文まで遡って確認した結果をまとめた実務書です。\n確認できたことと、確認できなかったことを、出典つきで分けて書いています。\n\n■ 収録（全5部・133ページ／PDF）\n第1部 知識編　自賠責・任意保険・一括対応のしくみ（第1〜6章）\n第2部 実践編　患者対応、保険会社対応、整形外科・弁護士との連携（第7〜17章）\n第3部 集客編　広告規制をふまえた周知のしかた（第18〜26章）\n第4部 実務テンプレート　そのまま印刷して使える様式22種\n第5部 確認テスト35問・失敗例20件・用語集・出典18件（URL／確認日つき）\n\n院長だけでなく、受付スタッフ・勤務柔整師が同じ説明をできるようにするための一冊です。\nPDFデータでのお渡し（ご購入後、メールに添付してお送りします）。院内でのご利用に限ります。\n\n※ボタンから詳しい内容のご案内ページへ進みます。10ページ分の試し読みができます。",
+                "url": "https://nature2026.github.io/online/kotsujiko/"
+            },
             {
                 "id": 1,
                 "name": "令和8年度　療養費改定資料の実践解説版（柔整・あはきセット）",
@@ -407,6 +420,11 @@
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: DATA_VERSION, products: products })); } catch (e) {}
         }
 
+        // 決済リンクならそのまま購入へ、案内ページなら「詳しく見る」にする
+        function buyLabel(url) {
+            return (url && url.indexOf('buy.stripe.com') >= 0) ? '購入する' : '詳しく見る';
+        }
+
         // ===== ショップ表示 =====
         function renderShop() {
             const list = document.getElementById('shopList');
@@ -420,6 +438,7 @@
                 <div class="product-card" id="scard-${p.id}">
                     <div class="product-head" onclick="toggleCard(${p.id})">
                         <div class="product-head-left">
+                            ${p.badge ? `<div class="product-badge">${escapeHtml(p.badge)}</div>` : ''}
                             <div class="product-name">${escapeHtml(p.name)}</div>
                             <div class="product-price"><span class="yen">¥</span>${p.price.toLocaleString('ja-JP')}</div>
                         </div>
@@ -429,7 +448,7 @@
                         <div class="product-detail-inner">
                             ${p.desc ? `<div class="product-desc">${escapeHtml(p.desc)}</div>` : '<div style="padding-top:16px;"></div>'}
                             ${hasLink
-                                ? `<a href="${escapeHtml(p.url)}" class="btn-buy" target="_blank">購入する</a>`
+                                ? `<a href="${escapeHtml(p.url)}" class="btn-buy" target="_blank">${buyLabel(p.url)}</a>`
                                 : `<span class="btn-buy disabled">準備中</span>`}
                         </div>
                     </div>
@@ -462,7 +481,7 @@
             const buyBtn = document.getElementById('floatBuy');
             if (hasLink) {
                 buyBtn.className = 'float-buy';
-                buyBtn.textContent = '購入する';
+                buyBtn.textContent = buyLabel(p.url);
                 buyBtn.href = p.url;
                 buyBtn.target = '_blank';
             } else {
