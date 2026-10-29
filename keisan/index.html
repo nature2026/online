@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>慰謝料の目安を計算する｜ひかり鍼灸整骨院</title>
+<meta name="description" content="通院日数と治療期間から、自賠責保険の基準による慰謝料の目安を概算できます。姫路市飾磨区 ひかり鍼灸整骨院。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0e4a58; --navy-d:#0a3843; --navy-l:#1a6b7d;
+  --accent:#d9722c; --line:#06c755; --line-d:#05a648;
+  --ink:#22323a; --ink-s:#5b6b73;
+  --bg:#ffffff; --bg-tint:#f2f8f9; --bg-warm:#fdf7f0; --bd:#dbe5e8;
+  --radius:14px;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0; padding:0 0 34px;
+  font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  font-size:16px; line-height:1.9; color:var(--ink);
+  background:var(--bg-tint); font-feature-settings:"palt";
+}
+.wrap{max-width:680px;margin:0 auto;padding:0 14px;}
+
+/* ---------- ヘッダー ---------- */
+.hd{background:#fff;border-bottom:1px solid var(--bd);padding:12px 0;}
+.hd__in{max-width:680px;margin:0 auto;padding:0 14px;}
+.hd__n{font-size:17px;font-weight:900;color:var(--navy-d);margin:0;line-height:1.3;}
+.hd__a{font-size:11.5px;color:var(--ink-s);margin:2px 0 0;line-height:1.4;}
+
+/* ---------- 導入 ---------- */
+.lead{padding:20px 0 0;}
+.lead__t{font-size:17px;font-weight:900;color:var(--navy-d);margin:0 0 8px;line-height:1.55;}
+.lead__p{font-size:13.5px;line-height:1.85;color:var(--ink-s);margin:0;}
+
+/* ---------- 計算ツール ---------- */
+.calc{
+  margin-top:18px;background:#fff;border-radius:var(--radius);
+  padding:22px 18px;border-top:5px solid var(--accent);
+  box-shadow:0 6px 20px rgba(14,74,88,.07);
+}
+.calc__ttl{font-size:19px;font-weight:900;color:var(--navy-d);margin:0 0 8px;line-height:1.5;}
+.calc__lead{font-size:14px;line-height:1.8;color:var(--ink-s);margin:0 0 18px;}
+.calc__lead strong{color:var(--ink);}
+.calc__form{display:grid;gap:12px;}
+.calc__row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.calc__label{font-size:14.5px;font-weight:700;color:var(--navy-d);line-height:1.45;}
+.calc__label em{display:block;font-style:normal;font-size:11.5px;font-weight:500;color:var(--ink-s);margin-top:2px;}
+.calc__field{display:flex;align-items:center;gap:6px;flex:none;}
+.calc__field input{
+  width:92px;font-size:20px;font-weight:900;font-family:inherit;text-align:right;
+  padding:9px 11px;border:2px solid var(--bd);border-radius:9px;
+  color:var(--navy-d);background:#fff;-moz-appearance:textfield;
+}
+.calc__field input:focus{outline:none;border-color:var(--accent);}
+.calc__field i{font-style:normal;font-size:14px;font-weight:700;color:var(--ink-s);}
+.calc__result{margin-top:18px;background:var(--navy);color:#fff;border-radius:12px;padding:17px 16px;text-align:center;}
+.calc__result-l{font-size:12.5px;font-weight:700;margin:0 0 4px;color:#bcd9e0;letter-spacing:.04em;}
+.calc__amount{margin:0;font-size:36px;font-weight:900;line-height:1.2;letter-spacing:-.01em;font-feature-settings:"tnum";}
+.calc__amount i{font-style:normal;font-size:18px;margin-left:3px;}
+.calc__formula{white-space:pre-line;margin:9px 0 0;font-size:12px;line-height:1.7;color:#a9ccd4;border-top:1px solid rgba(255,255,255,.18);padding-top:9px;}
+.calc__note{font-size:11px;line-height:1.75;color:var(--ink-s);margin:14px 0 0;}
+.calc__note strong{color:var(--ink);}
+
+/* 院からの数字が入っているときの表示 */
+.pre{
+  display:none;margin:0 0 14px;padding:10px 12px;border-radius:10px;
+  background:var(--bg-warm);border:1px solid #f0ddc6;
+  font-size:12.5px;line-height:1.7;color:#8a5a28;
+}
+.pre.on{display:block;}
+
+/* 弁護士基準の注意（下段） */
+.law{
+  margin-top:16px;padding:14px 15px;border-radius:12px;
+  background:var(--bg-warm);border:1px solid #efdcc4;border-left:4px solid var(--accent);
+}
+.law p{margin:0;font-size:13.5px;line-height:1.85;color:#6b4a24;font-weight:500;}
+.law p strong{color:#55391a;font-weight:700;}
+
+/* ---------- ボタン ---------- */
+.btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-decoration:none;border-radius:var(--radius);
+  padding:15px 16px;min-height:66px;text-align:center;
+  transition:transform .12s ease;
+}
+.btn:active{transform:translateY(2px);}
+.btn__main{font-size:18px;font-weight:900;line-height:1.35;}
+.btn__sub{font-size:11.5px;font-weight:500;margin-top:3px;opacity:.92;line-height:1.5;}
+.btn--line{background:linear-gradient(180deg,#0ad55f 0%,var(--line) 100%);color:#fff;box-shadow:0 4px 0 var(--line-d);}
+.btn--line .btn__main::before{
+  content:"";display:inline-block;width:22px;height:22px;vertical-align:-4px;margin-right:7px;
+  background:#fff;border-radius:6px;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3C6.9 3 2.8 6.3 2.8 10.4c0 3.7 3.3 6.8 7.7 7.4.3.1.7.2.8.5.1.3.1.6 0 .9l-.1.8c0 .2-.2.9.8.5s5.4-3.2 7.4-5.5c1.3-1.4 1.9-2.9 1.9-4.6C21.3 6.3 17.1 3 12 3z'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3C6.9 3 2.8 6.3 2.8 10.4c0 3.7 3.3 6.8 7.7 7.4.3.1.7.2.8.5.1.3.1.6 0 .9l-.1.8c0 .2-.2.9.8.5s5.4-3.2 7.4-5.5c1.3-1.4 1.9-2.9 1.9-4.6C21.3 6.3 17.1 3 12 3z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.btn--tel{background:#fff;color:var(--navy-d);border:2px solid var(--navy);box-shadow:0 4px 0 #cbdadd;}
+.calc__cta{margin-top:16px;}
+
+/* ---------- フッター ---------- */
+.ft{margin-top:20px;text-align:center;font-size:11.5px;line-height:1.8;color:var(--ink-s);}
+.ft a{color:var(--navy);}
+
+/* ---------- 院用リンク作成（?staff=1 のときだけ） ---------- */
+.mk{display:none;margin-top:22px;background:#fff;border:2px dashed var(--navy-l);border-radius:12px;padding:16px;}
+.mk.on{display:block;}
+.mk__t{margin:0 0 6px;font-size:14px;font-weight:900;color:var(--navy-d);}
+.mk__d{margin:0 0 10px;font-size:12px;line-height:1.7;color:var(--ink-s);}
+.mk__u{
+  width:100%;font-family:inherit;font-size:12px;padding:10px;border:2px solid var(--bd);
+  border-radius:9px;color:var(--navy-d);background:var(--bg-tint);word-break:break-all;resize:vertical;
+}
+.mk__b{
+  margin-top:8px;width:100%;padding:12px;border:0;border-radius:10px;background:var(--navy);
+  color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;
+}
+.mk__b:active{transform:translateY(1px);}
+.mk__s{margin:8px 0 0;font-size:12px;font-weight:700;color:var(--line-d);min-height:1.2em;}
+
+@media (min-width:768px){
+  .calc{padding:30px 32px;margin-top:24px;}
+  .calc__ttl{font-size:24px;}
+  .calc__lead{font-size:15.5px;}
+  .calc__form{grid-template-columns:1fr 1fr;gap:20px;}
+  .calc__label{font-size:16px;}
+  .calc__amount{font-size:46px;}
+  .calc__note{font-size:12px;}
+  .calc__cta{max-width:420px;margin-left:auto;margin-right:auto;}
+  .law p{font-size:14.5px;}
+}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <div class="hd__in">
+    <p class="hd__n">ひかり鍼灸整骨院</p>
+    <p class="hd__a">姫路市飾磨区</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="lead">
+    <h1 class="lead__t">交通事故で通院中の方へ<br>慰謝料の目安を計算できます</h1>
+    <p class="lead__p">自賠責保険の基準にあてはめた、おおよその見当です。金額は保険会社との間で決まるもので、当院が算定したりお約束するものではありません。</p>
+  </div>
+
+  <!-- ---------- 慰謝料の概算ツール ---------- -->
+  <div class="calc">
+    <p class="calc__ttl">通院日数から、慰謝料の目安を計算する</p>
+    <p class="calc__lead">当院が金額を決めるわけではありませんが、<strong>自賠責保険の基準にあてはめると、おおよその見当はつきます。</strong>下の数字を入れてみてください。</p>
+
+    <p class="pre" id="preMsg">当院からお伝えした<strong>通院日数と治療期間</strong>をあらかじめ入れてあります。数字を変えると、その場で計算し直されます。</p>
+
+    <div class="calc__form">
+      <label class="calc__row">
+        <span class="calc__label">通院した日数<em>実際に通った回数</em></span>
+        <span class="calc__field"><input type="number" id="calcVisits" min="0" max="400" step="1" value="30" inputmode="numeric"><i>日</i></span>
+      </label>
+      <label class="calc__row">
+        <span class="calc__label">治療期間<em>初診から終了までの日数</em></span>
+        <span class="calc__field"><input type="number" id="calcPeriod" min="0" max="900" step="1" value="90" inputmode="numeric"><i>日</i></span>
+      </label>
+    </div>
+
+    <div class="calc__result">
+      <p class="calc__result-l">慰謝料の目安（概算）</p>
+      <p class="calc__amount"><span id="calcAmount">258,000</span><i>円</i></p>
+      <p class="calc__formula" id="calcFormula"></p>
+    </div>
+
+    <p class="calc__note">
+      ※2020年4月1日以降に発生した事故に適用される自賠責保険の基準（1日4,300円）による概算です。それ以前の事故は1日4,200円で計算されます。<br>
+      ※自賠責保険には支払限度額（傷害部分120万円）があり、施術費や休業損害なども含めて計算されます。<br>
+      ※任意保険の基準・弁護士の基準では金額が異なります。<br>
+      ※<strong>実際の金額は保険会社との間で決まるもので、当院が算定したりお約束するものではありません。</strong>
+    </p>
+
+    <div class="law">
+      <p>＊<br>
+      <strong>弁護士を活用した場合の慰謝料計算は上記と違いますので</strong><br>
+      ご不明な方はご来院時にご相談くださいませ。</p>
+    </div>
+
+    <a class="btn btn--line calc__cta" href="https://lin.ee/rUObbV0" target="_blank" rel="noopener">
+      <span class="btn__main">この結果について聞いてみる</span>
+      <span class="btn__sub">「あと何回通えばいいですか」でも大丈夫です</span>
+    </a>
+  </div>
+
+  <!-- ---------- 院のスタッフ用：送信リンクを作る（?staff=1） ---------- -->
+  <div class="mk" id="maker">
+    <p class="mk__t">【院用】患者様に送るリンクを作る</p>
+    <p class="mk__d">上の2つの数字を患者様の実数に合わせてから、下のボタンを押してコピーしてください。患者様が開くと、その数字が入った状態で表示されます。（この欄は患者様には表示されません）</p>
+    <textarea class="mk__u" id="mkUrl" rows="3" readonly></textarea>
+    <button class="mk__b" id="mkBtn" type="button">リンクをコピーする</button>
+    <p class="mk__s" id="mkMsg"></p>
+  </div>
+
+  <p class="ft">
+    ひかり鍼灸整骨院　姫路市飾磨区<br>
+    <a href="tel:079-228-9687">079-228-9687</a>　／　<a href="https://hikariseikotsuin.jp/traffic2026/">交通事故のページ</a>
+  </p>
+
+</div>
+
+<script>
+(function () {
+  var visits    = document.getElementById('calcVisits');
+  var period    = document.getElementById('calcPeriod');
+  var amountEl  = document.getElementById('calcAmount');
+  var formulaEl = document.getElementById('calcFormula');
+  var preMsg    = document.getElementById('preMsg');
+
+  var UNIT  = 4300;
+  var LIMIT = 1200000;  /* 自賠責の傷害部分の支払限度額 */
+
+  function toInt(el, max) {
+    var n = parseInt(el.value, 10);
+    if (isNaN(n) || n < 0) n = 0;
+    if (n > max) { n = max; el.value = max; }
+    return n;
+  }
+
+  function update() {
+    var v = toInt(visits, 400);
+    var p = toInt(period, 900);
+
+    var doubled = v * 2;
+    /* 治療期間が未入力なら、通院日数×2 を治療期間とみなす */
+    var base = (p > 0) ? Math.min(p, doubled) : doubled;
+    var amount = base * UNIT;
+
+    amountEl.textContent = amount.toLocaleString('ja-JP');
+
+    var txt;
+    if (p > 0) {
+      txt = '通院' + v + '日×2＝' + doubled + '日 ／ 治療期間' + p + '日'
+          + ' → 少ない方の' + base + '日 × 4,300円';
+    } else {
+      txt = '通院' + v + '日×2＝' + base + '日 × 4,300円';
+    }
+    if (amount > LIMIT) {
+      txt += '\n※自賠責の限度額（傷害部分120万円）を超えています。施術費や休業損害なども含めた合計に上限があります。';
+    }
+    formulaEl.textContent = txt;
+
+    buildUrl();
+  }
+
+  /* ---- URLの数字で初期値を差し替える（?v=通院日数 &p=治療期間） ---- */
+  var q = new URLSearchParams(location.search);
+  function setFromQuery(key, el, max) {
+    var raw = q.get(key);
+    if (raw === null) return false;
+    var n = parseInt(raw, 10);
+    if (isNaN(n) || n < 0) return false;
+    el.value = Math.min(n, max);
+    return true;
+  }
+  var gotV = setFromQuery('v', visits, 400);
+  var gotP = setFromQuery('p', period, 900);
+  if (gotV || gotP) preMsg.classList.add('on');
+
+  [visits, period].forEach(function (el) {
+    el.addEventListener('input', update);
+    el.addEventListener('change', update);
+  });
+
+  /* ---- 院用：リンク作成欄 ---- */
+  var maker = document.getElementById('maker');
+  var mkUrl = document.getElementById('mkUrl');
+  var mkBtn = document.getElementById('mkBtn');
+  var mkMsg = document.getElementById('mkMsg');
+  var isStaff = q.get('staff') === '1';
+  if (isStaff) maker.classList.add('on');
+
+  function buildUrl() {
+    if (!isStaff) return;
+    var base = location.href.split('?')[0].split('#')[0];
+    mkUrl.value = base + '?v=' + toInt(visits, 400) + '&p=' + toInt(period, 900);
+  }
+
+  if (isStaff) {
+    mkBtn.addEventListener('click', function () {
+      mkUrl.select();
+      mkUrl.setSelectionRange(0, 99999);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(mkUrl.value).then(function () {
+          mkMsg.textContent = 'コピーしました。LINEに貼り付けてください。';
+        }, function () {
+          mkMsg.textContent = ok ? 'コピーしました。' : '上の文字を長押しして選択・コピーしてください。';
+        });
+      } else {
+        mkMsg.textContent = ok ? 'コピーしました。' : '上の文字を長押しして選択・コピーしてください。';
+      }
+    });
+  }
+
+  update();
+})();
+</script>
+
+</body>
+</html>
